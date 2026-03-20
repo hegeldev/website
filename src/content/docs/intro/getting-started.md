@@ -1,0 +1,22 @@
+---
+title: Getting started
+---
+
+Welcome to Hegel! This page will orient first-time Hegel users and direct you to next steps.
+
+Hegel exists because of a problem: writing a good property-based testing library is hard. Writing a good property-based testing library in *every language*? Even more so.
+
+Many of the hardest parts of writing a PBT library can in principle be reused. Bug-finding distributions, automatic shrinking, and generator primitives could all be written once and used in every language. This would lower the barrier to entry and make world-class property-based testing available to all languages in a way which simply wasn't feasible before.
+
+<!-- consolidate the best of property-based testing in every language. -->
+
+Hegel is the realization of this idea.
+
+Hegel is several things. It a protocol for communicating between a PBT server (written once) and a PBT library (written for each language). It is also an implementation of this server and libraries in a number of languages.
+
+When we say "Hegel", we might mean any or all of these things. Your interest in Hegel will therefore determine which you might want to read further about:
+
+- Want to *use* Hegel? [hegel-rust](https://github.com/hegeldev/hegel-rust) and [hegel-go](https://github.com/hegeldev/hegel-go) are full-fledged property-based testing libraries, built on Hegel.
+- Want to learn more about the protocol? See [How Hegel works](/explanation/how-hegel-works), or jump straight to the [Protocol reference](/reference/protocol) and the [hegel-core](https://github.com/hegeldev/hegel-core) server.
+- Intersted in writing a Hegel library for a new language? See [Writing your own Hegel library](/how-to/writing-your-own-library).
+- Want to read more about the motivation behind Hegel? See [Why does Hegel exist?](/explanation/why-does-hegel-exist).

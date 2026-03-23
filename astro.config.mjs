@@ -10,7 +10,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Hegel',
-			favicon: '/favicon.png',
+			favicon: '/favicon.jpg',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/hegeldev' }],
 			sidebar: [
 				{

@@ -35,7 +35,6 @@ export default defineConfig({
 					label: 'Explanation',
 					items: [
 						{ slug: 'explanation/how-hegel-works' },
-						{ slug: 'explanation/why-does-hegel-exist' },
 					],
 				},
 				{

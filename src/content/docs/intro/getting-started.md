@@ -17,4 +17,4 @@ Hegel is several things. It a protocol for communicating between a PBT server (w
 When we say "Hegel", we might mean any or all of these things. Your interest in Hegel will therefore determine which you might want to read further about:
 
 - Want to *use* Hegel? [hegel-rust](https://github.com/hegeldev/hegel-rust) is a fully-fledged property-based testing libraries, built on Hegel. Libraries for more languages coming soon.
-- Want to learn more about the protocol? See [How Hegel works](/explanation/how-hegel-works), or jump straight to the [Protocol reference](/reference/protocol) and the [hegel-core](https://github.com/hegeldev/hegel-core) server.
+- Want to learn more about the protocol? See [How Hegel works](/explanation/how-hegel-works), or jump straight to the [hegel-core](https://github.com/hegeldev/hegel-core) server.

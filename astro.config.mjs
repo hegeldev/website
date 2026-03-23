@@ -41,7 +41,6 @@ export default defineConfig({
 				{
 					label: 'Reference',
 					items: [
-						{ slug: 'reference/protocol' },
 						{ slug: 'reference/installation' },
 					],
 				},

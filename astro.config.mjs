@@ -15,32 +15,38 @@ export default defineConfig({
 			sidebar: [
 				{
 					label: 'Introduction',
-					autogenerate: { directory: 'intro' },
+					items: [
+						{ slug: 'intro/getting-started' },
+					],
 				},
 				{
 					label: 'Libraries',
 					items: [
 						{ label: 'hegel-rust', link: 'https://github.com/hegeldev/hegel-rust', attrs: { target: '_blank', class: 'external-link' } },
-						{ label: 'hegel-go', link: 'https://github.com/hegeldev/hegel-go', attrs: { target: '_blank', class: 'external-link' } },
 					],
 				},
-				{
-					label: 'How-to guides',
-					autogenerate: { directory: 'how-to' },
-				},
+				// re-enable once we actually have content here!
+				//
+				// {
+				// 	label: 'How-to guides',
+				// 	autogenerate: { directory: 'how-to' },
+				// },
 				{
 					label: 'Explanation',
-					autogenerate: { directory: 'explanation' },
+					items: [
+						{ slug: 'explanation/how-hegel-works' },
+						{ slug: 'explanation/why-does-hegel-exist' },
+					],
 				},
 				{
 					label: 'Reference',
 					items: [
-						{ slug: 'reference/installation' },
 						{ slug: 'reference/protocol' },
+						{ slug: 'reference/installation' },
 					],
 				},
 				{
-					slug: 'reference/stability',
+					slug: 'compatibility',
 				},
 			],
             customCss: ['./src/styles/style.css'],

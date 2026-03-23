@@ -5,10 +5,10 @@ title: How Hegel works
 At the highest level, Hegel defines a *protocol* for communication between a *server* and a *client*.
 
 - The server implements the core of property-based testing. Data generation, shrinking, and so on.
-- The client implements the user-facing syntax of properties and generators. It asks the server for generated data over the protocol.
+- The client implements the user-facing syntax of properties and generators. It asks the server for generated data via protocol requests.
 
 :::note
-Currently, the only Hegel server is [`hegel-core`](https://github.com/hegeldev/hegel-core). It is therefore safe to substitute "server" with "hegel-core" on this page, if it helps with your understanding. However, any library which implements the Hegel protocol is a valid server here.
+Currently, the only Hegel server is [`hegel-core`](https://github.com/hegeldev/hegel-core), which itself uses [Hypothesis](https://github.com/hypothesisworks/hypothesis). It is therefore safe to substitute "server" with "hegel-core" on this page, if it helps with your understanding. However, any library which implements the Hegel protocol is a valid server here.
 :::
 
 As an example, suppose we have the following [hegel-rust](https://github.com/hegeldev/hegel-rust) test (the details of the code under test are unimportant):
@@ -25,7 +25,7 @@ fn test_sorted(tc: TestCase) {
 
 When this test runs:
 
-- If this is the first Hegel test to run in the test suite, `hegel-rust` negotiates an initial handshake with the server. This negotiated connection will be reused for further tests.
+- If this is the first Hegel test to run in the test suite, `hegel-rust` spawns the server as a subprocess and negotiates an initial handshake with it. This negotiated connection and subprocessed is then reused for any further tests.
   - The handshake is for example used to communicate the server version to `hegel-rust`.
 - `hegel-rust` tells the server a new test is being run, and with what settings. Here, the settings are `test_cases=200`.
 - `hegel-rust` tells the server a new test case is being started.

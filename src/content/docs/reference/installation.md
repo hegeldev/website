@@ -13,7 +13,7 @@ The [hegel-core](https://github.com/hegeldev/hegel-core) server uses [Hypothesis
 :::note
 We recognize this is less than ideal for a number of reasons and will make some people unhappy. Sorry! We decided it was the most pragmatic option.
 
-Our current long-term plan to eliminiate this dependency on Python is to rewrite Hypothesis in rust and provide per-language bindings. However, we aren't promising this will happen or committing to any timelines.
+Our current long-term plan to eliminate this dependency on Python is to rewrite Hypothesis in rust and provide per-language bindings. However, we aren't promising this will happen or committing to any timelines.
 :::
 
 At runtime, the first time a Hegel test is run in a test suite, each Hegel library spawns the `hegel-core` server as a subprocess. It does so by invoking the executable entrypoint provided by the `hegel-core` Python package.
@@ -36,7 +36,7 @@ Hegel libraries log the installation of the venv and `hegel-core` to `.hegel/ven
 
 If you require greater control over how and when `hegel-core` is installed, use the `HEGEL_SERVER_COMMAND` environment variable.
 
-Where the `hegel-core` binary gets places depends on how you install `hegel-core`. For example, when using `pip`, the binary is placed into `bin/hegel`, where the `bin/` directory is located inside the corresponding Python environment. You might then set `HEGEL_SERVER_COMMAND=/path/to/.../bin/hegel`.
+Where the `hegel-core` binary gets placed depends on how you install `hegel-core`. For example, when using `pip`, the binary is placed into `bin/hegel`, where the `bin/` directory is located inside the corresponding Python environment. You might then set `HEGEL_SERVER_COMMAND=/path/to/.../bin/hegel`.
 
 For knowledgeable Python users, it may be useful to know that Hegel defines its entrypoint as:
 

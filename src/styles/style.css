@@ -12,7 +12,7 @@
 
 /* more understated admonitions. I prefer using admonitions for information I want the
 user to be able to intentionally decide to skip, and this smaller padding / font sizes
-comunicates this better than the default.*/
+communicates this better than the default.*/
 .starlight-aside {
   /* default: 1rem */
   padding: 0.5rem 0.75rem;

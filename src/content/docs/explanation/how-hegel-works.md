@@ -18,18 +18,18 @@ use hegel::{TestCase}
 use hegel::generators::{integers}
 
 #[hegel::test(test_cases = 200)]
-fn test_sorted(tc: TestCase) {
+fn test_a(tc: TestCase) {
     let n: i32 = tc.draw(integers().min_value(100))
 }
 ```
 
 When this test runs:
 
-- If this is the first Hegel test to run in the test suite, `hegel-rust` spawns the server as a subprocess and negotiates an initial handshake with it. This negotiated connection and subprocessed is then reused for any further tests.
+- If this is the first Hegel test to run in the test suite, `hegel-rust` spawns the server as a subprocess and negotiates an initial handshake with it. This negotiated connection and subprocess is then reused for any further tests.
   - The handshake is for example used to communicate the server version to `hegel-rust`.
 - `hegel-rust` tells the server a new test is being run, and with what settings. Here, the settings are `test_cases=200`.
 - `hegel-rust` tells the server a new test case is being started.
-- `hegel-rust` executes `test_sorted` for that test case. When `tc.draw` is called, `hegel-rust` sends the schema representing the generator to the server. The server generates an arbitrary matching value and returns it.
+- `hegel-rust` executes `test_a` for that test case. When `tc.draw` is called, `hegel-rust` sends the schema representing the generator to the server. The server generates an arbitrary matching value and returns it.
   - Here, the schema is simply `{"type": "integers", "min_value": 100}`. The server might return anything in the range `[100, inf]`.
 - The test case finishes. `hegel-rust` communicates this to the server.
 - After 200 test cases, the test finishes. `hegel-rust` communicates this to the server.

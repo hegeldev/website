@@ -21,11 +21,11 @@ At runtime, the first time a Hegel test is run in a test suite, each Hegel libra
 Each Hegel library uses the following steps to run `hegel-core`:
 
 - If the `HEGEL_SERVER_COMMAND` environment variable is set, use that command directly.
-- Otherwise, the library uses [`uv tool run`](https://docs.astral.sh/uv/reference/cli/#uv-tool-run) to run `hegel-core` with a specific version[^1] that the library has been tested with.
+- Otherwise, the library uses [`uv tool run`](https://docs.astral.sh/uv/reference/cli/#uv-tool-run) to run `hegel-core` with a specific version that the library has been tested with.
 - The first time this is run, it will install a virtualenv in `~/.cache/uv` (or `$XDG_CACHE_HOME/uv` if set), after which that will be reused until the needed version changes. `uv` will be found as follows:
   - If `uv` is already on the PATH, it uses that.
   - If `uv` is not on the PATH, the library automatically downloads a private copy of `uv` to `~/.cache/hegel/uv` (or `$XDG_CACHE_HOME/hegel/uv` if set). This copy is not added to your PATH.
-  - The library then uses `uv tool run` to run `hegel-core==$VERSION`, where `$VERSION` is determined by the version of the Hegel library you have installed, as each Hegel library pins to an exact `hegel-core` version in its source.
+  - The library then uses `uv tool run` to run `hegel-core==$VERSION`, where `$VERSION` is determined by the version of the Hegel library you have installed, as each Hegel library pins to an exact `hegel-core` version in its source[^1].
 
 Some practical implications of this:
 - The download of `uv` (if needed) and the first run of `hegel-core` happen at runtime. If your tests must run in a sandboxed environment without network access, consider using `HEGEL_SERVER_COMMAND`.

@@ -1,4 +1,6 @@
-# Comparing Hegel to other Property-based Testing Libraries
+---
+title: Comparing Hegel to other Property-based Testing Libraries
+---
 
 Something we've been (quite reasonably) asked is "Why would we use Hegel instead of other property-based testing libraries?"
 

@@ -25,4 +25,4 @@ Our first stable release will be `1.0.0`.
 
 ## Platform support
 
-Hegel fully supports both macOS and Linux. Windows is supported on an experimental basis: it works, but with rough edges (for example, automatic installation of `uv` doesn't yet work on Windows, so you'll need to [install `uv` yourself](https://docs.astral.sh/uv/getting-started/installation/) and ensure it's on your PATH). You can follow [hegel-core#61](https://github.com/hegeldev/hegel-core/issues/61) for updates on the path to full Windows support.
+Hegel supports macOS, Linux, and Windows. Of the three, Windows is the least well-tested, so it's more likely you'll hit a rough edge on Windows than on the others — for example, automatic installation of `uv` doesn't yet work on Windows, so you'll need to [install `uv` yourself](https://docs.astral.sh/uv/getting-started/installation/) and ensure it's on your PATH. If you hit anything else, please [open an issue](https://github.com/hegeldev/hegel-core/issues/new).

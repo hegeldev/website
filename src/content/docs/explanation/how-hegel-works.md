@@ -35,6 +35,6 @@ When this test runs:
 - After 200 test cases, the test finishes. `hegel-rust` communicates this to the server.
 - If the test fails, `hegel-rust` communicates this to the server. The server then shrinks the failing test case and returns the minimal failing test case to `hegel-rust`, who displays it to the user.
 
-The transport layer of the protocol is currently unix sockets, but the protocol is agnostic to the particular choice of transport layer and this could in principle be swapped for something else.
+The transport layer of the protocol is currently the server's stdin and stdout, but the protocol is agnostic to the particular choice of transport layer and this could in principle be swapped for something else.
 
 We have glossed over some subtlety here. For example, `tc.assume()` and `generator.filter()` can reject test cases during the test, which needs to be communicated back to the server. And the server needs the ability to communicate errors to the client, for example in the case of a flaky test or an invalid generator definition.

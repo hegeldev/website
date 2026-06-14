@@ -13,7 +13,7 @@ This is an RFC-style reference for the Hegel protocol. It is intended to be deta
 * <strong><span id="def-packet">Packet</span></strong>: The unit of data sent in the protocol. A packet is always associated with a <Stream>stream</Stream>. A packet is comprised of a 31-bit integer ID, and 1 bit indicating whether it is a reply.
 * <strong><span id="def-request-packet">Request packet</span></strong>: A <Packet>packet</Packet> with the reply bit set to 0. All packets are either request packets or reply packets. Note that not every request packet expects a <ReplyPacket>reply packet</ReplyPacket> in response.
 * <strong><span id="def-reply-packet">Reply packet</span></strong>: A <Packet>packet</Packet> with the reply bit set to 1. Each reply packet is associated with a specific <RequestPacket>request packet</RequestPacket>. All packets are either request packets or reply packets.
-* <strong><span id="def-stream">Stream</span></strong>: A unique identifier used to associate logically-related <Packet>packets</Packet> together. All <Packet>packets</Packet> are associated with a stream.
+* <strong><span id="def-stream">Stream</span></strong>: A unique identifier used to associate logically related <Packet>packets</Packet> together. All <Packet>packets</Packet> are associated with a stream.
 * <strong><span id="def-control-stream">Control stream</span></strong>: The <Stream>stream</Stream> used for high-level packets, for example because no other stream has been established yet. The control stream has id `0`.
 * <strong><span id="def-test-case">Test case</span></strong>: A single execution of the test function with the concrete set of values that were generated for it during its execution.
 * <strong><span id="def-test-run">Test run</span></strong>: The full lifecycle of a test function, including executing multiple <TestCase>test cases</TestCase> and shrinking any failures.
@@ -50,7 +50,7 @@ The first five fields comprise the header. Each field is an unsigned 32-bit big-
 - Magic: The constant `0x4845474C`. This is ASCII for "HEGL".
 - Checksum: Defined as `crS32(H)`, where `H` is the packet with the terminator removed and the checksum field set to 0.
 - Stream ID: The <Stream>stream</Stream> this packet is associated with. The S (source) bit is 1 for streams created by the <Client>client</Client>, and 0 for streams created by the <Server>server</Server>[^1].
-- Message ID: The id of the message associated with this packet. The R (reply) bit is set iff this packet is a reply to a <RequestPacket>request packet</RequestPacket>. The message id of a <ReplyPacket>reply packet</ReplyPacket> is the same as the message id of the corresponding <RequestPacket>request packet</RequestPacket>, but with the R bit set[^2].
+- Message ID: The id of the message associated with this packet. The R (reply) bit is set if this packet is a reply to a <RequestPacket>request packet</RequestPacket>. The message id of a <ReplyPacket>reply packet</ReplyPacket> is the same as the message id of the corresponding <RequestPacket>request packet</RequestPacket>, but with the R bit set[^2].
 - Payload length: The length of the payload, in bytes.
 
 The header is followed by the variable-length payload field, and then a single terminator byte (0x0A).
@@ -321,7 +321,7 @@ After the <PacketRef name="test_done" /> packet, the <Server>server</Server> sen
 
 ### Stream close
 
-For clarity at runtime, stream can be marked as closed when they are no longer needed.
+For clarity at runtime, streams can be marked as closed when they are no longer needed. 
 
 <PacketTable name="stream_close" isReply={false} encoding="raw" payload={<>The single byte <code>0xFE</code>. The message id of this packet is always <code>(1 &lt;&lt; 31) - 1</code>.</>} />
 
@@ -403,7 +403,7 @@ Some fields list their type as `schema`. This means it accepts any generator sch
   },
   {
     name: "string",
-    description: <>Generate a Unicode string. Returned as a custom CBOR tag 91, with a payload equivalent to the UTF-8 representation of the string except that surrogate code points are allowed.
+    description: <>Generate a Unicode string. Returned as a custom CBOR tag 91, with a payload equivalent to the UTF-8 representation of the string, except that surrogate code points are allowed.
     <br/>
     <br/>
     To exclude surrogates, for example because the client's programming language does not allow UTF-8 strings with surrogate code points, set <code>exclude_categories</code> to <code>["Cs"]</code>.
@@ -417,8 +417,8 @@ Some fields list their type as `schema`. This means it accepts any generator sch
       <li>If <code>exclude_categories</code> is specified, then any character from those categories will not be generated. It is invalid to pass both <code>categories</code> and <code>exclude_categories</code>; these arguments are alternative ways to specify the same thing.</li>
       <li>If <code>include_characters</code> is specified, then any additional characters in that list will also be generated.</li>
       <li>If <code>exclude_characters</code> is specified, then any characters in that list will not be generated. It is invalid to have any overlap between <code>include_characters</code> and <code>exclude_characters</code>.</li>
+      <li>If <code>codec</code> is specified, only characters encodable in that codec will be generated.</li>
     </ul>
-    If <code>codec</code> is specified, only characters encodable in that codec will be generated.
     </>,
     fields: [
       { name: "min_size", description: <>Minimum length, in the number of code points.</>, type: "integer", default: <code>0</code> },
@@ -497,10 +497,11 @@ Some fields list their type as `schema`. This means it accepts any generator sch
   {
     name: "url",
     description: <>Generate an http/https URL string, according to <a href="https://datatracker.ietf.org/doc/html/rfS3986.html"><code>RFC 3986</code></a>.</>,
-  },
+  }, <!-- COMMENT: link broken -->
   {
     name: "domain",
-    description: <>Generate a fully qualified domain name string, according to <a href="https://datatracker.ietf.org/doc/html/rfS1035"><code>RFC 1035</code></a>.</>,
+    description: <>Generate a fully qualified domain name string, according to <a href="https://datatracker.ietf.org/doc/html/rfS1035"><code>RFC 1035</code></a>.</>, 
+<!-- COMMENT: link broken -->
     fields: [
       { name: "max_length", description: <>Maximum length of the domain name.</>, type: "integer", default: <code>255</code> },
     ],

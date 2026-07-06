@@ -6,7 +6,7 @@ title: Installation reference
 You may have been directed to this page by an error during the installation of a Hegel library. If that is you, and any part of how we install Hegel or the tradeoffs we made is still confusing or misleading after reading this page, *please* [open an issue against hegeldev/website](https://github.com/hegeldev/website/issues/new) so we can improve it for everyone.
 :::
 
-Every Hegel library is built on **libhegel**, a native shared library (`libhegel.so`, `libhegel.dylib`, or `libhegel.dll`) containing Hegel's data-generation and shrinking engine. The engine is a Rust port of [Hypothesis](https://github.com/hypothesisworks/hypothesis)'s internals; each language library calls into it in-process through its C ABI. There is no server, no subprocess, and no Python dependency.
+Every Hegel library is built on **libhegel**, a native shared library (`libhegel.so`, `libhegel.dylib`, or `libhegel.dll`) containing Hegel's data-generation and shrinking engine.^[Previous versions of Hegel were built on top of Hypothesis, so had a Python dependency, but we've since ported the core Hypothesis engine to Rust so this is no longer needed.]
 
 Prebuilt libhegel binaries are published as assets on [hegel-rust releases](https://github.com/hegeldev/hegel-rust/releases), named `libhegel-<os>-<arch>.<ext>` with a `.sha256` checksum sidecar, for Linux (amd64/arm64), macOS (Apple Silicon), and Windows (amd64/arm64). See the [libhegel reference](/reference/libhegel) for details.
 
@@ -53,7 +53,6 @@ The opam package bundles the prebuilt libhegel matching your platform. At runtim
 
 - `HEGEL_LIBHEGEL_PATH`, if set (either the library file itself or a directory containing it).
 - The copy bundled with the opam package.
-- A sibling `../hegel-rust` checkout's `target/release` or `target/debug` build (for Hegel development).
 - A SHA-256-verified download from the hegel-rust GitHub release, cached in `~/.cache/hegel-ocaml/libhegel/<version>/` (or under `$XDG_CACHE_HOME` if set).
 
 Setting `HEGEL_LIBHEGEL_NO_DOWNLOAD=1` disables the download fallback.

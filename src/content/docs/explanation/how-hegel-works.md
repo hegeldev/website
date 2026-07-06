@@ -7,10 +7,10 @@ At the highest level, Hegel splits a property-based testing library into two par
 - The engine implements the core of property-based testing: data generation, shrinking, the failure database, and so on.
 - The library implements the user-facing syntax of properties and generators in a particular language. It asks the engine for generated data.
 
-The engine is written once, in Rust — it is a port of the internals of [Hypothesis](https://github.com/hypothesisworks/hypothesis) — and shipped as a native shared library called **libhegel**, which exposes a C ABI. Each Hegel library loads libhegel and calls into it in-process. There is no server, no subprocess, and no inter-process communication: a Hegel test is a normal test in your language that happens to make function calls into a native library.
+The engine is written once, in Rust — it is a port of the internals of [Hypothesis](https://github.com/hypothesisworks/hypothesis) — and shipped as a native shared library called **libhegel**, which exposes a C ABI. Each Hegel library loads libhegel and calls into it via an FFI 
 
 :::note
-libhegel lives in the [hegel-rust](https://github.com/hegeldev/hegel-rust) repository, as the [`hegel-c`](https://github.com/hegeldev/hegel-rust/tree/main/hegel-c) crate. Even hegel-rust itself drives the engine exclusively through the C ABI, exactly like every other language's library — so the interface other libraries build on is the same one we use ourselves.
+libhegel lives in the [hegel-rust](https://github.com/hegeldev/hegel-rust) repository, as the [`hegel-c`](https://github.com/hegeldev/hegel-rust/tree/main/hegel-c) crate, but even hegel-rust itself drives the engine exclusively through the C ABI, exactly like every other language's library. They live in the same repository partly for historical reasons and partly for ease of development, as it's much easier to keep libhegel working robustly if it is always tested against a reference library implementation.
 :::
 
 As an example, suppose we have the following [hegel-rust](https://github.com/hegeldev/hegel-rust) test (the details of the code under test are unimportant):

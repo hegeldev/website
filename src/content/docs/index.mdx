@@ -21,7 +21,7 @@ import hedgel from '../../assets/hedgel-small.webp';
   <h1 style="margin-top: 1rem;">Hegel</h1>
 </div>
 
-Hegel is a universal property-based testing protocol and family of libraries, built on [Hypothesis](https://github.com/hypothesisworks/hypothesis).
+Hegel is a family of property-based testing libraries for many languages, built on a shared native engine ported from [Hypothesis](https://github.com/hypothesisworks/hypothesis).
 
 First time here? We recommend starting with the [Getting started](/intro/getting-started) guide, or reading through the example Hegel code below.
 
@@ -58,11 +58,11 @@ import (
 )
 
 func TestRespectsLRUCapacity(t *testing.T) {
-	t.Run("MyLRUCache respects capacity", hegel.Case(func(ht *hegel.T) {
+	hegel.Test(t, func(ht *hegel.T) {
 		capacity := hegel.Draw(ht, hegel.Integers(0, math.MaxInt))
 		cache := NewMyLRUCache[string, int](capacity)
 
-		keys := hegel.Draw(ht, hegel.Lists(hegel.Text(0, math.MaxInt)))
+		keys := hegel.Draw(ht, hegel.Lists(hegel.Text()))
 		for _, key := range keys {
 			value := hegel.Draw(ht, hegel.Integers(math.MinInt, math.MaxInt))
 			cache.Put(key, value)
@@ -71,7 +71,7 @@ func TestRespectsLRUCapacity(t *testing.T) {
 		if cache.Size() > capacity {
 			ht.Fatalf("cache size exceeds capacity")
 		}
-	}))
+	})
 }
 ```
   </TabItem>
@@ -103,8 +103,7 @@ import { test, expect } from "vitest";
 import * as hegel from "@hegeldev/hegel";
 import * as gs from "@hegeldev/hegel/generators";
 
-test(
-	"MyLRUCache respects capacity",
+test("MyLRUCache respects capacity", () =>
 	hegel.test((tc) => {
 		const capacity = tc.draw(gs.integers({ minValue: 0 }));
 		const cache = new MyLRUCache<string, number>(capacity);
@@ -117,8 +116,7 @@ test(
 		}
 
 		expect(cache.size()).toBeLessThanOrEqual(capacity);
-	}),
-);
+	}));
 ```
   </TabItem>
   <TabItem label="Java">
@@ -145,6 +143,22 @@ class LRUCacheTest {
 }
 ```
   </TabItem>
+  <TabItem label="OCaml">
+```ocaml
+open Hegel
+open Hegel.Generators
+
+let%hegel_test respects_lru_capacity tc =
+	let capacity = draw tc (integers ~min_value:0 ()) in
+	let cache = MyLRUCache.create capacity in
+
+	let entries = draw tc (lists (tuples2 (text ()) (integers ())) ()) in
+	List.iter (fun (key, value) -> MyLRUCache.put cache key value) entries;
+
+	assert (MyLRUCache.size cache <= capacity)
+;;
+```
+  </TabItem>
 </Tabs>
 
 <CardGrid>
@@ -160,6 +174,6 @@ class LRUCacheTest {
   </Card>
   <Card title="Reference">
     - [Installation reference](/reference/installation)
-    - [Protocol reference](/reference/protocol)
+    - [libhegel reference](/reference/libhegel)
   </Card>
 </CardGrid>

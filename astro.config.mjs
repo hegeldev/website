@@ -17,10 +17,15 @@ export default defineConfig({
         smartypants: false,
     },
     trailingSlash: 'never',
+    // The protocol reference was replaced by the libhegel reference when Hegel
+    // moved from the hegel-core server protocol to the native libhegel engine.
+    redirects: {
+        '/reference/protocol': '/reference/libhegel',
+    },
 	integrations: [
 		starlight({
 			title: 'Hegel',
-			description: 'A universal property-based testing protocol and family of libraries, built on Hypothesis',
+			description: 'A family of property-based testing libraries for many languages, built on a shared native engine ported from Hypothesis',
 			favicon: '/favicon.ico',
 			head: [
 				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' } },
@@ -52,7 +57,8 @@ export default defineConfig({
 						{ label: 'hegel-cpp', link: 'https://github.com/hegeldev/hegel-cpp', attrs: { target: '_blank', class: 'external-link' } },
 						{ label: 'hegel-typescript', link: 'https://github.com/hegeldev/hegel-typescript', attrs: { target: '_blank', class: 'external-link' } },
 						{ label: 'hegel-java', link: 'https://github.com/hegeldev/hegel-java', attrs: { target: '_blank', class: 'external-link' } },
-						{ label: 'hegel-core', link: 'https://github.com/hegeldev/hegel-core', attrs: { target: '_blank', class: 'external-link' } },
+						{ label: 'hegel-ocaml', link: 'https://github.com/hegeldev/hegel-ocaml', attrs: { target: '_blank', class: 'external-link' } },
+						{ label: 'libhegel', link: 'https://github.com/hegeldev/hegel-rust/tree/main/hegel-c', attrs: { target: '_blank', class: 'external-link' } },
 					],
 				},
 				// re-enable once we actually have content here!
@@ -72,7 +78,7 @@ export default defineConfig({
 					label: 'Reference',
 					items: [
 						{ slug: 'reference/installation' },
-						{ slug: 'reference/protocol' },
+						{ slug: 'reference/libhegel' },
 					],
 				},
 				{

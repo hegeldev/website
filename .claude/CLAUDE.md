@@ -21,6 +21,6 @@ npm run preview      # Preview production build locally
 - **Deployment**: Vercel (configured in `vercel.json` and `astro.config.mjs` via `@astrojs/vercel` adapter with web analytics)
 - **Content**: Markdown/MDX files in `src/content/docs/` — Starlight auto-generates pages from these
 - **Sidebar**: Configured in `astro.config.mjs` under `starlight({ sidebar: [...] })`
-- **Go module redirect**: `public/go/hegel.html` serves the `go-import` meta tag so `go get hegel.dev/go/hegel` resolves to the GitHub repo. The Vercel redirect in `vercel.json` routes `/go/hegel/` to this file.
+- **Go module redirect**: `public/go/hegel.html` serves the `go-import` meta tag so `go get hegel.dev/go/hegel` resolves via a custom module proxy (`hegel-go-modproxy.fly.dev`). Vercel's `cleanUrls` serves this file at `/go/hegel`.
 - **Custom CSS**: `src/styles/style.css` overrides Starlight defaults (text color, line height, admonition styling). External sidebar links use the `.external-link` class which appends an icon via `src/assets/external-link.svg`.
 - **Images**: Hedgel mascot images in `src/assets/`, tracked via Git LFS

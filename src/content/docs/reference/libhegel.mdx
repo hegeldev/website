@@ -1,0 +1,409 @@
+---
+title: libhegel reference
+---
+
+This is a reference for **libhegel**, the native library at the core of Hegel. It is intended to be detailed enough to get you started writing a new Hegel library against libhegel, in combination with the documentation in [`hegel.h`](https://github.com/hegeldev/hegel-rust/blob/main/hegel-c/include/hegel.h), which is the authoritative reference for the C API.
+
+libhegel implements the core of a property-based testing library — data generation, shrinking, targeted search, the failure database, health checks — as a Rust port of [Hypothesis](https://github.com/hypothesisworks/hypothesis)'s internal engine, and exposes it through a C ABI. Every Hegel library, including [hegel-rust](https://github.com/hegeldev/hegel-rust) itself, drives the engine entirely through this C ABI, so the interface described here is exercised by every supported language.
+
+## Getting libhegel
+
+libhegel lives in the [hegel-rust repository](https://github.com/hegeldev/hegel-rust), in the [`hegel-c`](https://github.com/hegeldev/hegel-rust/tree/main/hegel-c) crate. Each hegel-rust release publishes prebuilt shared libraries as GitHub release assets named `libhegel-<os>-<arch>.<ext>`, each with a `.sha256` sidecar:
+
+| Asset | Platform |
+|---|---|
+| `libhegel-linux-amd64.so` | Linux x86-64 |
+| `libhegel-linux-arm64.so` | Linux arm64 |
+| `libhegel-darwin-arm64.dylib` | macOS Apple Silicon |
+| `libhegel-windows-amd64.dll` | Windows x86-64 |
+| `libhegel-windows-arm64.dll` | Windows arm64 |
+
+There is no prebuilt library for Intel macOS (`darwin/amd64`); on that platform, build the `hegeltest-c` crate from source (`cargo build --release -p hegeltest-c` in a hegel-rust checkout).
+
+While Hegel is in beta, the C ABI may change between minor versions, and each Hegel library pins the exact libhegel version it was built against. See [Compatibility](/compatibility).
+
+## The C API
+
+The full API is documented in [`hegel.h`](https://github.com/hegeldev/hegel-rust/blob/main/hegel-c/include/hegel.h) (generated from the Rust source by cbindgen). This section summarizes its shape.
+
+### Calling convention
+
+Every function takes a `hegel_context_t*` as its first argument and returns a `hegel_result_t` code (`HEGEL_OK` is zero; errors are negative), with two exceptions: `hegel_context_new`, which creates a context and returns it, and `hegel_context_last_error`, which returns the last error message for a context. Anything else a call produces — a handle, a string, a count — is written through a trailing `out_*` parameter.
+
+Two of the error codes are part of the normal control flow rather than errors in the usual sense:
+
+- `HEGEL_E_STOP_TEST`: the engine has exhausted its choice budget for this test case and wants the caller to abort the test body. Treat the test case as complete (`HEGEL_STATUS_OVERRUN`).
+- `HEGEL_E_ASSUME`: an `assume`/`reject` precondition failed; the current test case is invalid and should be discarded (`HEGEL_STATUS_INVALID`).
+
+Handles (`hegel_context_t`, `hegel_settings_t`, `hegel_run_t`, `hegel_test_case_t`, `hegel_run_result_t`, `hegel_failure_t`) are caller-owned and must be released with the matching `*_free` function. Pointers you pass in are copied during the call; borrowed strings and buffers handed back remain owned by libhegel and are valid only until the next call on the same handle, as documented per function in `hegel.h`.
+
+### Lifecycle
+
+A test run follows this shape (see [`hegel-c/examples/`](https://github.com/hegeldev/hegel-rust/tree/main/hegel-c/examples) for complete, runnable C programs):
+
+```c
+hegel_context_t *ctx = hegel_context_new();
+
+hegel_settings_t *s;
+hegel_settings_new(ctx, &s);
+hegel_settings_set_test_cases(ctx, s, 100);
+
+hegel_run_t *run;
+hegel_run_start(ctx, s, &run);
+
+while (true) {
+    hegel_test_case_t *tc;
+    hegel_next_test_case(ctx, run, &tc);
+    if (tc == NULL) break; /* run is finished */
+
+    /* run the user's test body: draw values with hegel_generate,
+       then report how the test case went */
+    const uint8_t *value;
+    size_t value_len;
+    hegel_generate(ctx, tc, schema, schema_len, &value, &value_len);
+
+    hegel_mark_complete(ctx, tc, HEGEL_STATUS_VALID, NULL);
+    hegel_test_case_free(ctx, tc);
+}
+
+hegel_run_result_t *result;
+hegel_run_result(ctx, run, &result);
+/* inspect status and failures, then free everything */
+```
+
+The engine owns the whole run lifecycle: it decides which test cases to hand out, replays the failure database, generates novel inputs, and shrinks failures. The caller's job is to run the test body against each test case it is handed and report the outcome via `hegel_mark_complete` with one of:
+
+- `HEGEL_STATUS_VALID`: the test case passed.
+- `HEGEL_STATUS_INVALID`: the test case was rejected (e.g. by a failed `assume`).
+- `HEGEL_STATUS_OVERRUN`: the engine ran out of choice budget (after `HEGEL_E_STOP_TEST`).
+- `HEGEL_STATUS_INTERESTING`: the test case failed. Pass an `origin` string uniquely identifying the failure; the engine shrinks and reports each distinct origin independently.
+
+When `hegel_next_test_case` returns a `NULL` test case, the run is over, and `hegel_run_result` returns a snapshot with the run status (passed / failed / error), any error message, and the failures. Each failure exposes its `origin` and a reproduction blob (`hegel_failure_reproduction_blob`), which can be replayed later with `hegel_test_case_from_blob`. The engine deliberately has no concept of a "final" test case: after the run, the caller replays each failure itself (via the reproduction blob) to present the minimal failing example to the user, which gives the calling library full control of error reporting and debugger integration.
+
+### Settings
+
+`hegel_settings_set_*` functions configure a run before `hegel_run_start`: the number of test cases, the random seed, `derandomize`, the failure database path and key, which phases run, suppressed health checks, verbosity, whether to report multiple distinct failures, the run mode (`HEGEL_MODE_TEST_RUN` or `HEGEL_MODE_SINGLE_TEST_CASE`, the latter producing exactly one test case with no shrinking), and the randomness backend (`HEGEL_BACKEND_AUTO` picks a fresh-entropy `/dev/urandom` backend automatically under [Antithesis](https://antithesis.com/), and a seeded, reproducible PRNG otherwise).
+
+### Test case primitives
+
+Within a test case, the primitives are:
+
+- `hegel_generate(ctx, tc, schema, schema_len, &value, &value_len)`: generate a value from a CBOR-encoded [generator schema](#generator-schemas). This is the workhorse; both the schema and the returned value are CBOR.
+- `hegel_start_span(ctx, tc, label)` / `hegel_stop_span(ctx, tc, discard)`: group logically-related draws so the shrinker can operate on them as a unit. Setting `discard` excludes the span from shrinking (used e.g. for failed filter attempts).
+- `hegel_new_collection` / `hegel_collection_more` / `hegel_collection_reject`: engine-managed sizing for variable-length collections whose elements cannot be expressed as a schema. The engine decides when the collection is done.
+- `hegel_primitive_boolean`: a weighted boolean draw with an optional forced value.
+- `hegel_target(ctx, tc, score, label)`: record an observation for targeted property-based testing; the engine hill-climbs toward higher scores.
+- `hegel_new_pool` / `hegel_pool_add` / `hegel_pool_generate`: variable pools, collections of identifiers pointing to values produced earlier in the test. Primarily useful for stateful testing.
+- `hegel_new_state_machine` / `hegel_state_machine_next_rule`: engine-owned rule selection for stateful testing (including swarm testing).
+
+A single test-case handle may be driven by at most one thread at a time; to generate from several threads, clone the handle with `hegel_test_case_clone` and give each thread its own clone.
+
+## Generator schemas
+
+A generator schema is a CBOR map describing the values to generate, passed to `hegel_generate`. Every schema has a required `type` field (a text string) selecting the generator; the remaining fields configure it. Unknown fields are ignored.
+
+Wire conventions:
+
+- **Strings** are returned as CBOR tag 91 wrapping the UTF-8 bytes of the string. This applies to `string`, `regex`, and all of the formatted-string generators (`date`, `uuid`, `email`, and so on). Generated strings never contain surrogate code points.
+- **Byte strings** (`binary`) are plain CBOR byte strings, untagged.
+- **Big integers** that do not fit in 64 bits are accepted and returned as CBOR bignums (tag 2 for non-negative, tag 3 for negative).
+
+An invalid schema (missing required fields, out-of-range values, contradictory arguments, and so on) fails the call with `HEGEL_E_INVALID_ARG` and a diagnostic message on the context. These indicate a mistake in how the test is written, and Hegel libraries should surface them as errors rather than test failures.
+
+Some fields below list their type as `schema`. This means they accept any nested generator schema. Fields in **bold** are required.
+
+<SchemaTable schemas={[
+  {
+    name: "constant",
+    description: <>Generate <code>value</code>. The value is returned verbatim, with no string tagging.</>,
+    fields: [
+      { name: "value", description: <>The value to return.</>, type: "any", required: true },
+    ],
+  },
+  {
+    name: "null",
+    description: <>Generate <code>null</code>.</>,
+  },
+  {
+    name: "boolean",
+    description: <>Generate either <code>true</code> or <code>false</code>, with equal probability. (Libraries wanting a weighted boolean use the <code>hegel_primitive_boolean</code> primitive instead.)</>,
+  },
+  {
+    name: "integer",
+    description: <>Generate an integer in <code>[min_value, max_value]</code>. Bounds and results outside the 64-bit range use CBOR bignum tags 2 and 3.</>,
+    fields: [
+      { name: "min_value", description: <>Minimum value, inclusive.</>, type: "integer", required: true },
+      { name: "max_value", description: <>Maximum value, inclusive.</>, type: "integer", required: true },
+    ],
+  },
+  {
+    name: "float",
+    description: <>Generate a float.</>,
+    fields: [
+      { name: "min_value", description: <>Minimum value.</>, type: "float | integer", default: <code>-Infinity</code> },
+      { name: "max_value", description: <>Maximum value.</>, type: "float | integer", default: <code>Infinity</code> },
+      { name: "allow_nan", description: <>Whether <code>NaN</code> can be generated.</>, type: "boolean", default: <code>true</code> },
+      { name: "allow_infinity", description: <>Whether <code>+Infinity</code> and <code>-Infinity</code> can be generated.</>, type: "boolean", default: <code>true</code> },
+      { name: "width", description: <>Float width. Either <code>32</code> or <code>64</code>. With width <code>32</code>, generated values are exactly representable as 32-bit floats.</>, type: "integer", default: <code>64</code> },
+      { name: "exclude_min", description: <>Exclude the minimum value.</>, type: "boolean", default: <code>false</code> },
+      { name: "exclude_max", description: <>Exclude the maximum value.</>, type: "boolean", default: <code>false</code> },
+      { name: "smallest_nonzero_magnitude", description: <>The smallest magnitude a nonzero generated value may have. Set this to the smallest positive <em>normal</em> float to exclude subnormal values, for testing code that may run with flush-to-zero floating point. Must be positive and finite.</>, type: "float", default: "the smallest positive subnormal at the given width" },
+    ],
+  },
+  {
+    name: "string",
+    description: <>Generate a Unicode string. Returned as CBOR tag 91 wrapping the string's UTF-8 bytes. Surrogate code points are never generated.
+    <br/>
+    <br/>
+    The alphabet of generatable characters is computed as follows: start from the codepoint range allowed by <code>codec</code>, clamp it by <code>min_codepoint</code>/<code>max_codepoint</code>, remove surrogates, then apply <code>categories</code> (keep only those categories) or <code>exclude_categories</code> (remove those categories), remove <code>exclude_characters</code>, and finally add <code>include_characters</code> back in.
+    <br/>
+    <br/>
+    It is invalid to pass both <code>categories</code> and <code>exclude_categories</code>, to have any overlap between <code>include_characters</code> and <code>exclude_characters</code>, to include characters the codec cannot encode, or to specify filters that leave no generatable characters.
+    </>,
+    fields: [
+      { name: "min_size", description: <>Minimum length, in code points.</>, type: "integer", default: <code>0</code> },
+      { name: "max_size", description: <>Maximum length, in code points.</>, type: "integer", default: <>the greater of <code>min_size</code> and <code>100</code></> },
+      { name: "min_codepoint", description: <>Minimum Unicode code point, inclusive.</>, type: "integer", default: "no restriction" },
+      { name: "max_codepoint", description: <>Maximum Unicode code point, inclusive.</>, type: "integer", default: "no restriction" },
+      { name: "categories", description: <>Restrict generated characters to the given <a href="https://en.wikipedia.org/wiki/Unicode_character_property#General_Category">Unicode general categories</a>. Each category can be either a one-letter major category (e.g. <code>"L"</code>) or a two-letter minor category (e.g. <code>"Lu"</code>).</>, type: "text[]", default: "no restriction" },
+      { name: "exclude_categories", description: <>Exclude characters in the given Unicode general categories.</>, type: "text[]", default: "no restriction" },
+      { name: "include_characters", description: <>Characters that should always be allowed, even if they would otherwise be excluded by the other filters.</>, type: "text", default: "no restriction" },
+      { name: "exclude_characters", description: <>Characters that should never be generated.</>, type: "text", default: "no restriction" },
+      { name: "codec", description: <>If set, only characters encodable in the given codec will be generated. One of <code>"ascii"</code>, <code>"latin-1"</code> (alias <code>"iso-8859-1"</code>), or <code>"utf-8"</code>.</>, type: "text", default: <code>"utf-8"</code> },
+    ],
+  },
+  {
+    name: "binary",
+    description: <>Generate a byte string. Returned as a plain CBOR byte string.</>,
+    fields: [
+      { name: "min_size", description: <>Minimum length, in bytes.</>, type: "integer", default: <code>0</code> },
+      { name: "max_size", description: <>Maximum length, in bytes.</>, type: "integer", default: <code>100</code> },
+    ],
+  },
+  {
+    name: "regex",
+    description: <>Generate a string that matches the given <code>pattern</code> regular expression. The regex dialect is that of Python's <a href="https://docs.python.org/3/library/re.html"><code>re</code></a> module.</>,
+    fields: [
+      { name: "pattern", description: <>The regular expression to match.</>, type: "text", required: true },
+      { name: "fullmatch", description: <>If <code>true</code>, <code>pattern</code> must match the entire string. If <code>false</code>, <code>pattern</code> may match a substring, and the engine may pad the match with arbitrary prefixes and suffixes (respecting any anchors in the pattern).</>, type: "boolean", default: <code>false</code> },
+      { name: "alphabet", description: <>A nested <SchemaRef name="string" /> schema (character-filtering fields only) constraining which characters may appear in the generated string.</>, type: "schema", default: "any non-surrogate character" },
+    ],
+  },
+  {
+    name: "tuple",
+    description: <>Generate a fixed-length array, where each element is drawn from the corresponding schema at that position.</>,
+    fields: [
+      { name: "elements", description: <>A list of schemas of the same length as the desired tuple. May be empty.</>, type: "schema[]", required: true },
+    ],
+  },
+  {
+    name: "one_of",
+    description: <>Generate a value drawn from one of <code>generators</code>. Returned as a 2-element array <code>[index, value]</code>, where <code>index</code> is the 0-based index into <code>generators</code> and <code>value</code> is the value drawn from <code>generators[index]</code>.</>,
+    fields: [
+      { name: "generators", description: <>Array of schemas. Must be non-empty.</>, type: "schema[]", required: true },
+    ],
+  },
+  {
+    name: "sampled_from",
+    description: <>Generate one of the given <code>values</code>, returned verbatim (except that text values are returned with the usual tag-91 string encoding).</>,
+    fields: [
+      { name: "values", description: <>The values to sample from. Must be non-empty.</>, type: "any[]", required: true },
+    ],
+  },
+  {
+    name: "list",
+    description: <>Generate a list of values from the <code>elements</code> schema.</>,
+    fields: [
+      { name: "elements", description: <>The elements schema.</>, type: "schema", required: true },
+      { name: "min_size", description: <>Minimum number of elements.</>, type: "integer", default: <code>0</code> },
+      { name: "max_size", description: <>Maximum number of elements.</>, type: "integer", default: "unbounded" },
+      { name: "unique", description: <>If <code>true</code>, all generated list elements will be distinct.</>, type: "boolean", default: <code>false</code> },
+    ],
+  },
+  {
+    name: "dict",
+    description: <>Generate a map with keys drawn from <code>keys</code> and values drawn from <code>values</code>. Keys are always distinct. Returned as an array of 2-element arrays: <code>[[key1, value1], ...]</code>.</>,
+    fields: [
+      { name: "keys", description: <>The keys schema.</>, type: "schema", required: true },
+      { name: "values", description: <>The values schema.</>, type: "schema", required: true },
+      { name: "min_size", description: <>Minimum number of map entries.</>, type: "integer", default: <code>0</code> },
+      { name: "max_size", description: <>Maximum number of map entries.</>, type: "integer", default: "unbounded" },
+    ],
+  },
+  {
+    name: "email",
+    description: <>Generate an email address string, according to <a href="https://datatracker.ietf.org/doc/html/rfc5322#section-3.4.1"><code>RFC 5322 Section 3.4.1</code></a>.</>,
+  },
+  {
+    name: "url",
+    description: <>Generate an http/https URL string.</>,
+  },
+  {
+    name: "domain",
+    description: <>Generate a fully qualified domain name string, according to <a href="https://datatracker.ietf.org/doc/html/rfc1035"><code>RFC 1035</code></a>, with a real top-level domain drawn from the IANA list.</>,
+    fields: [
+      { name: "max_length", description: <>Maximum length of the domain name. Must be in <code>[4, 255]</code>.</>, type: "integer", default: <code>255</code> },
+    ],
+  },
+  {
+    name: "ip_address",
+    description: <>Generate an IP address string. Half of generated addresses are drawn from special-use CIDR blocks (loopback, private ranges, documentation ranges, and so on).</>,
+    fields: [
+      { name: "version", description: <>The IP version. Must be <code>4</code> or <code>6</code>.</>, type: "integer", required: true },
+    ],
+  },
+  {
+    name: "date",
+    description: <>Generate an ISO 8601 date string. For example: <code>"2024-03-15"</code>.</>,
+  },
+  {
+    name: "time",
+    description: <>Generate an ISO 8601 time string. For example: <code>"14:30:00"</code>.</>,
+  },
+  {
+    name: "datetime",
+    description: <>Generate an ISO 8601 datetime string, without a timezone. For example: <code>"2024-03-15T14:30:00"</code>.</>,
+  },
+  {
+    name: "uuid",
+    description: <>Generate a UUID string in canonical hyphenated form. For example: <code>"550e8400-e29b-41d4-a716-446655440000"</code>.</>,
+    fields: [
+      { name: "version", description: <>If set, generates a UUID of the corresponding RFC 4122 version.</>, type: "integer", default: "any version" },
+    ],
+  },
+]} />
+
+export const SchemaRef = ({name, field}) => (
+  <a href={field ? `#schema-${name}-${field}` : `#schema-${name}`} class="def-link"><code>{field ?? name}</code></a>
+);
+
+export function SchemaTable({schemas}) {
+  const fieldRowCount = (f) =>
+    2 + (f.default !== undefined ? 1 : 0) + (f.required ? 1 : 0) + (f.fields ? 1 : 0);
+  const schemaRowCount = (s) =>
+    1 + (s.fields?.reduce((n, f) => n + fieldRowCount(f), 0) ?? 0);
+
+  function validate(field, schemaName) {
+    if (field.required === undefined && field.default === undefined) {
+      throw new Error(`Field "${field.name}" in schema "${schemaName}" must set either "required" or "default"`);
+    }
+    for (const sub of field.fields ?? []) validate(sub, schemaName);
+  }
+  for (const schema of schemas) {
+    for (const field of schema.fields ?? []) validate(field, schema.name);
+  }
+
+  function renderField(field, schemaName) {
+    return (
+      <>
+        <tr>
+          <td
+            rowspan={fieldRowCount(field)}
+            class={`field-name${field.required ? ' field-required' : ''}`}
+            id={`schema-${schemaName}-${field.name}`}
+          >
+            {field.name}
+          </td>
+          <td colspan="2">{field.description}</td>
+        </tr>
+        <tr class="field-meta">
+          <td>type</td>
+          <td><code>{field.type}</code></td>
+        </tr>
+        {field.default !== undefined && (
+          <tr class="field-meta">
+            <td>default</td>
+            <td>{field.default}</td>
+          </tr>
+        )}
+        {field.required && (
+          <tr class="field-meta">
+            <td>required</td>
+            <td>yes</td>
+          </tr>
+        )}
+        {field.fields && (
+          <tr>
+            <td colspan="2" class="nested-cell">
+              <table class="schema-table nested">
+                {field.fields.map((sub) => renderField(sub, schemaName))}
+              </table>
+            </td>
+          </tr>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <table class="schema-table">
+      {schemas.map((schema) => (
+        <>
+          <tr>
+            <td rowspan={schemaRowCount(schema)} class="schema-name" id={`schema-${schema.name}`}>{schema.name}</td>
+            <td colspan="3">{schema.description}</td>
+          </tr>
+          {schema.fields?.map((f) => renderField(f, schema.name))}
+        </>
+      ))}
+    </table>
+  );
+}
+
+<style>
+{`
+a.def-link {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--sl-color-gray-4);
+  text-underline-offset: 2px;
+}
+a.def-link:hover {
+  text-decoration-color: var(--sl-color-gray-2);
+}
+.schema-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.schema-table td {
+  vertical-align: top;
+  padding: 0.4em 0.6em;
+  border: 1px solid var(--sl-color-gray-5);
+}
+.schema-table .schema-name {
+  font-weight: bold;
+  white-space: nowrap;
+}
+.schema-table .field-name {
+  white-space: nowrap;
+  font-size: 0.9em;
+}
+.schema-table .field-name.field-required {
+  font-weight: bold;
+}
+.schema-table .field-meta td {
+  font-size: 0.85em;
+  color: var(--sl-color-gray-3);
+}
+/* Make the description/value column claim leftover horizontal space so a
+ * nested table actually fills its parent cell instead of collapsing to
+ * content width. */
+.schema-table td:last-child {
+  width: 100%;
+}
+/* Nested table fills its containing td.
+ * Explicit bg here is essential: the parent tr might be a 2n row and
+ * inherit Starlight's gray-7 zebra; without overriding here, that stripe
+ * leaks into every row of the nested table and erases its own stripes. */
+.schema-table .nested-cell {
+  padding: 0;
+  background: var(--sl-color-bg);
+}
+.schema-table.nested {
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+}
+`}
+</style>

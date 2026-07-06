@@ -14,7 +14,7 @@ If the possibility of breaking changes bothers you, please check back in a few m
 
 ## Versioning
 
-While Hegel is in beta, we have adopted the following version scheme for [hegel-core](https://github.com/hegeldev/hegel-core) and all Hegel libraries:
+While Hegel is in beta, we have adopted the following version scheme for [libhegel](/reference/libhegel) and all Hegel libraries:
 
 - Minor `0.N.0` releases for changes that might be breaking.
 - Patch `0.0.N` releases for any other change.
@@ -25,4 +25,6 @@ Our first stable release will be `1.0.0`.
 
 ## Platform support
 
-Hegel fully supports both macOS and Linux. Hegel does not currently support Windows, due to the use of Unix sockets in [hegel-core](https://github.com/hegeldev/hegel-core). Support for Windows is planned; you can follow [hegel-core#61](https://github.com/hegeldev/hegel-core/issues/61) for updates.
+Hegel fully supports Linux (amd64 and arm64) and macOS (Apple Silicon). There are no prebuilt [libhegel](/reference/libhegel) binaries for Intel macOS, but you can [build libhegel yourself](/reference/installation#building-libhegel-yourself) there.
+
+Windows support currently varies by library: hegel-rust, hegel-go, and hegel-typescript support Windows (amd64 and arm64); hegel-cpp should work on Windows but is not regularly tested there; and hegel-java and hegel-ocaml do not currently support Windows.

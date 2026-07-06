@@ -6,48 +6,64 @@ title: Installation reference
 You may have been directed to this page by an error during the installation of a Hegel library. If that is you, and any part of how we install Hegel or the tradeoffs we made is still confusing or misleading after reading this page, *please* [open an issue against hegeldev/website](https://github.com/hegeldev/website/issues/new) so we can improve it for everyone.
 :::
 
-The [hegel-core](https://github.com/hegeldev/hegel-core) server uses [Hypothesis](https://github.com/hypothesisworks/hypothesis) as the underlying library providing data generation, shrinking, and so on. Every Hegel library, regardless of language, therefore has an implicit dependency on Python.
+Every Hegel library is built on **libhegel**, a native shared library (`libhegel.so`, `libhegel.dylib`, or `libhegel.dll`) containing Hegel's data-generation and shrinking engine. The engine is a Rust port of [Hypothesis](https://github.com/hypothesisworks/hypothesis)'s internals; each language library calls into it in-process through its C ABI. There is no server, no subprocess, and no Python dependency.
 
-:::note
-We recognize this is less than ideal for a number of reasons and will make some people unhappy. Sorry! We decided it was the most pragmatic option.
+Prebuilt libhegel binaries are published as assets on [hegel-rust releases](https://github.com/hegeldev/hegel-rust/releases), named `libhegel-<os>-<arch>.<ext>` with a `.sha256` checksum sidecar, for Linux (amd64/arm64), macOS (Apple Silicon), and Windows (amd64/arm64). See the [libhegel reference](/reference/libhegel) for details.
 
-Our current long-term plan to eliminate this dependency on Python is to rewrite Hypothesis in rust and provide per-language bindings. However, we aren't promising this will happen or committing to any timelines.
-:::
+Each library pins the exact libhegel version it was built and tested against, and verifies downloaded binaries against checksums baked into its own source, so you never need to (and shouldn't) pick a libhegel version yourself.
 
-At runtime, the first time a Hegel test is run in a test suite, each Hegel library spawns the `hegel-core` server as a subprocess.
+How the pinned libhegel gets onto your machine varies by library:
 
-Each Hegel library uses the following steps to run `hegel-core`:
+## hegel-rust
 
-- If the `HEGEL_SERVER_COMMAND` environment variable is set, use that command directly.
-- Otherwise, the library uses [`uv tool run`](https://docs.astral.sh/uv/reference/cli/#uv-tool-run) to run `hegel-core` with a specific version that the library has been tested with.
-- The first time this is run, it will install a virtualenv in `~/.cache/uv` (or `$XDG_CACHE_HOME/uv` if set), after which that will be reused until the needed version changes. `uv` will be found as follows:
-  - If `uv` is already on the PATH, it uses that.
-  - If `uv` is not on the PATH, the library automatically downloads a private copy of `uv` to `~/.cache/hegel/uv` (or `$XDG_CACHE_HOME/hegel/uv` if set). This copy is not added to your PATH.
-  - The library then uses `uv tool run` to run `hegel-core==$VERSION`, where `$VERSION` is determined by the version of the Hegel library you have installed, as each Hegel library pins to an exact `hegel-core` version in its source[^1].
+Nothing to install: the engine is a Rust crate, compiled into your test binary like any other dependency. `cargo add --dev hegeltest` is all you need.
 
-Some practical implications of this:
-- The download of `uv` (if needed) and the first run of `hegel-core` happen at runtime. If your tests must run in a sandboxed environment without network access, consider using `HEGEL_SERVER_COMMAND`.
-- If you upgrade your Hegel library, and the Hegel library happened to bump its `hegel-core` version, your first test run afterwards may be slow as `uv` fetches the new version.
+## hegel-go
 
-## Installing hegel-core manually
+`hegel-go` loads libhegel at runtime using pure-Go dynamic loading — no cgo, so no C toolchain is needed and `CGO_ENABLED` is irrelevant. The library is located as follows:
 
-If you require greater control over how and when `hegel-core` is installed, use the `HEGEL_SERVER_COMMAND` environment variable.
+- If the `HEGEL_LIBHEGEL_PATH` environment variable is set, that library is loaded directly, with no fallback.
+- Otherwise, the pinned version is downloaded from the hegel-rust GitHub release, verified against a SHA-256 checksum compiled into hegel-go, and cached in `~/.cache/hegel-go/libhegel/<version>/` (via your OS's user cache directory). Subsequent runs reuse the cached copy until the pinned version changes.
 
-Where the `hegel-core` binary gets placed depends on how you install `hegel-core`. For example, when using `pip`, the binary is placed into `bin/hegel`, where the `bin/` directory is located inside the corresponding Python environment. You might then set `HEGEL_SERVER_COMMAND=/path/to/.../bin/hegel`.
+Setting `HEGEL_LIBHEGEL_NO_DOWNLOAD=1` disables the downloader entirely, which is useful to guarantee sandboxed test environments never touch the network — combine it with `HEGEL_LIBHEGEL_PATH` pointing at a library you provisioned yourself.
 
-For knowledgeable Python users, it may be useful to know that Hegel defines its entrypoint as:
+## hegel-typescript
 
-```python
-[project.scripts]
-hegel = "hegel.__main__:main"
-```
+The npm package bundles libhegel for every supported platform — `npm install --save-dev @hegeldev/hegel` gets you everything, works offline, and runs no install scripts. At runtime the bundled library for your platform is loaded via FFI, or, if `HEGEL_LIBHEGEL_PATH` is set, that library is used instead.
 
-Note that if you set `HEGEL_SERVER_COMMAND`, you are responsible for ensuring that your Hegel library version is compatible with that `hegel-core` version. We do our best to give informative errors where this is not the case, but there are a lot of possible combinations of this and ways things can go wrong, and only the most common have been tested for.
+Hegel for TypeScript requires Node 20.11+. Bun and Deno are not currently supported.
+
+## hegel-java
+
+The jar bundles libhegel for Linux (amd64/arm64) and macOS (Apple Silicon), and binds it with the Java Foreign Function & Memory API (no JNI), which is why Java 22+ is required. At runtime the library is resolved in this order:
+
+- `HEGEL_LIBHEGEL_PATH`, if set.
+- The OS shared-library search path (`LD_LIBRARY_PATH` on Linux, `DYLD_LIBRARY_PATH` on macOS).
+- The jar-bundled library, unpacked to `~/.cache/hegel-java/libhegel/<sha256>/` (or under `$XDG_CACHE_HOME` if set) and reused from there.
+
+You'll also want to pass `--enable-native-access=ALL-UNNAMED` to the JVM running your tests to silence the FFM native-access warning.
+
+## hegel-cpp
+
+CMake downloads the pinned prebuilt libhegel for your platform at configure time and verifies it against its published SHA-256 checksum; your targets then link `hegel`, which takes care of the rest. To use a locally built engine instead — for example on a platform without a prebuilt binary — pass `-DHEGEL_LIBHEGEL_LIBRARY=/path/to/libhegel.<ext>`, which skips the download entirely.
+
+## hegel-ocaml
+
+The opam package bundles the prebuilt libhegel matching your platform. At runtime the library is resolved in this order:
+
+- `HEGEL_LIBHEGEL_PATH`, if set (either the library file itself or a directory containing it).
+- The copy bundled with the opam package.
+- A sibling `../hegel-rust` checkout's `target/release` or `target/debug` build (for Hegel development).
+- A SHA-256-verified download from the hegel-rust GitHub release, cached in `~/.cache/hegel-ocaml/libhegel/<version>/` (or under `$XDG_CACHE_HOME` if set).
+
+Setting `HEGEL_LIBHEGEL_NO_DOWNLOAD=1` disables the download fallback.
+
+## Building libhegel yourself
+
+If you are on a platform without a prebuilt binary (for example Intel macOS), or you want full control over the binary you run, build libhegel from source: check out [hegel-rust](https://github.com/hegeldev/hegel-rust) and run `cargo build --release -p hegeltest-c`. This produces `target/release/libhegel.<ext>`, which you can hand to your library via `HEGEL_LIBHEGEL_PATH` (or `-DHEGEL_LIBHEGEL_LIBRARY` for hegel-cpp).
+
+Note that each library expects the specific libhegel version it pins, and will warn or error on a mismatch, so build from the corresponding hegel-rust release tag.
 
 ## Troubleshooting
 
-This process should ideally be transparent to you. If it breaks without giving a very clear error message about what you need to do to fix it, that's a bug and we'd appreciate it if you reported it.
-
-The most useful source of information is that `hegel-core` server's `stderr` is piped to `.hegel/server.log` and should contain any errors that occurred during installation, but any information you can give us about the environment that triggered the problems would be appreciated.
-
-[^1]: Note that there is no correspondence between `hegel-core` version numbers and Hegel library version numbers.
+This process should ideally be transparent to you. If it breaks without giving a very clear error message about what you need to do to fix it, that's a bug and we'd appreciate it if you reported it, along with any information you can give us about the environment that triggered the problem.

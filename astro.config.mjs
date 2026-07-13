@@ -22,6 +22,9 @@ export default defineConfig({
 			title: 'Hegel',
 			description: 'A universal property-based testing protocol and family of libraries, built on Hypothesis',
 			favicon: '/favicon.ico',
+			components: {
+				Footer: './src/components/Footer.astro',
+			},
 			head: [
 				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' } },
 				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },

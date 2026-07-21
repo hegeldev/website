@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - name: Generate app token
         uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
@@ -28,7 +27,6 @@ jobs:
 
       - name: Update version mapping
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           NEW_VERSION: ${{ github.event.client_payload.version }}
           PROTOCOL_VERSION: ${{ github.event.client_payload.protocol_version }}
           HEGEL_RELEASE_APP_ID: ${{ vars.HEGEL_RELEASE_APP_ID }}

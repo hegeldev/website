@@ -2,7 +2,7 @@
 title: Why Hegel?
 ---
 
-Hegel is an attempt to bring the power of property-based testing in Hypothesis to every language.
+Hegel is an attempt to bring the power of property-based testing in [Hypothesis](https://github.com/hypothesisworks/hypothesis) to every language.
 
 If you're not familiar with it, Hypothesis is the most widely used property-based testing library in the world.
 

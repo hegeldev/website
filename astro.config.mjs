@@ -17,10 +17,12 @@ export default defineConfig({
         smartypants: false,
     },
     trailingSlash: 'never',
-    // The protocol reference documented the retired hegel-core wire protocol.
-    // Keep the old URL alive; it points at the libhegel engine reference now.
+    // The protocol reference documented the retired hegel-core wire protocol,
+    // and the libhegel reference duplicated the C header. Keep the old URLs
+    // alive by pointing them at the header itself.
     redirects: {
-        '/reference/protocol': '/reference/libhegel',
+        '/reference/protocol': 'https://github.com/hegeldev/hegel-rust/blob/main/hegel-c/include/hegel.h',
+        '/reference/libhegel': 'https://github.com/hegeldev/hegel-rust/blob/main/hegel-c/include/hegel.h',
     },
 	integrations: [
 		starlight({
@@ -74,9 +76,14 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Reference',
+					label: 'API documentation',
 					items: [
-												{ slug: 'reference/libhegel' },
+						{ label: 'hegel-rust', link: 'https://docs.rs/hegeltest', attrs: { target: '_blank', class: 'external-link' } },
+						{ label: 'hegel-go', link: 'https://pkg.go.dev/hegel.dev/go/hegel', attrs: { target: '_blank', class: 'external-link' } },
+						{ label: 'hegel-cpp', link: '/cpp/', attrs: { target: '_blank', class: 'external-link' } },
+						{ label: 'hegel-typescript', link: '/typescript/', attrs: { target: '_blank', class: 'external-link' } },
+						{ label: 'hegel-java', link: 'https://javadoc.io/doc/dev.hegel/hegel', attrs: { target: '_blank', class: 'external-link' } },
+						{ label: 'hegel-ocaml', link: '/ocaml/', attrs: { target: '_blank', class: 'external-link' } },
 					],
 				},
 				{

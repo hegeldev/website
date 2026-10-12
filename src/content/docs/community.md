@@ -21,4 +21,6 @@ There are a number of open-source libraries for Hegel. These libraries are maint
 * Ruby:
   * https://github.com/meganemura/hegel-ruby
   * https://github.com/hiasinho/hegel-ruby
-* Swift: https://github.com/nassersala/hegel-swift
+* Swift:
+  * https://github.com/nassersala/hegel-swift
+  * https://github.com/Semantical/hegel-swift

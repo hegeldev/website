@@ -17,6 +17,10 @@ export default defineConfig({
         smartypants: false,
     },
     trailingSlash: 'never',
+    // Poll for file changes in the dev server rather than relying on macOS
+    // FSEvents, which can silently stop delivering events and leave the dev
+    // server serving stale content.
+    vite: { server: { watch: { usePolling: true, interval: 300 } } },
     // The protocol reference documented the retired hegel-core wire protocol,
     // and the libhegel reference duplicated the C header. Keep the old URLs
     // alive by pointing them at the header itself.

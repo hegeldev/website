@@ -12,4 +12,13 @@ We'd love to chat. Come join us in the `#hegel` channel in the Antithesis discor
 
 There are a number of open-source libraries for Hegel. These libraries are maintained by the community, and are not officially endorsed by Hegel. Nevertheless, check them out:
 
+* Clojure: https://github.com/aphyr/hegel-clj
+* Elixir: https://github.com/mvkvc/hegel-elixir
+* Erlang: https://github.com/ghuntley/hegel-erlang
 * Haskell: https://github.com/MercuryTechnologies/zizek
+* Lean: https://github.com/alok/hegel-lean
+* Odin: https://github.com/deepankarsharma/hegel-odin
+* Ruby:
+  * https://github.com/meganemura/hegel-ruby
+  * https://github.com/hiasinho/hegel-ruby
+* Swift: https://github.com/nassersala/hegel-swift

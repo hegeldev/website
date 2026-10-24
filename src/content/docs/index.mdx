@@ -173,9 +173,34 @@ let () =
   </TabItem>
 </Tabs>
 
+## Skills
+
+The [Hegel skill](https://github.com/hegeldev/hegel-skill#hegel-skill) teaches agents how to write property-based tests using Hegel. It works with Claude Code, Codex, and other agents that support the [Agent Skills standard](https://agentskills.io/home).
+
+<Tabs>
+  <TabItem label="Claude Code">
+Add the repository as a marketplace, then install the skill:
+
+```text
+/plugin marketplace add hegeldev/hegel-skill
+/plugin install hegel-skill@hegeldev
+```
+
+  </TabItem>
+  <TabItem label="Codex">
+Ask Codex to use its built-in skill installer:
+
+```text
+$skill-installer install https://github.com/hegeldev/hegel-skill/tree/main/skills/hegel
+```
+
+  </TabItem>
+</Tabs>
+
 <CardGrid>
   <Card title="Introduction">
    - [Getting started](/intro/getting-started)
+   - [Skills](https://github.com/hegeldev/hegel-skill)
   </Card>
   <Card title="Explanation">
     - [How Hegel works](/explanation/how-hegel-works)

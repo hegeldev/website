@@ -1,8 +1,16 @@
-# Website
+# This repository has moved
 
-Source code for https://hegel.dev.
+The source of [hegel.dev](https://hegel.dev) now lives in the Hegel monorepo at **https://github.com/hegeldev/hegel**, under [`website/`](https://github.com/hegeldev/hegel/tree/main/website).
 
-## Developing
+| What you're looking for | Where it is now |
+|---|---|
+| The site (Astro/Starlight) | [`website/`](https://github.com/hegeldev/hegel/tree/main/website) |
+| How to build and run it locally | [`website/README.md`](https://github.com/hegeldev/hegel/blob/main/website/README.md) (`just website::setup`, then `just website::serve`) |
+| The generated C++, TypeScript and OCaml API docs | [`website/public/`](https://github.com/hegeldev/hegel/tree/main/website/public), committed by each frontend's release |
+| Bug reports and feature requests | [hegeldev/hegel issues](https://github.com/hegeldev/hegel/issues) |
 
-* Install dependencies: `npm install`
-* Run dev server: `npm run dev`
+hegel.dev is deployed from hegeldev/hegel; changes made here are no longer published.
+
+## History
+
+The history of this repository's `main` branch was merged into the monorepo, with its Git LFS files converted to ordinary files, so the commits there have different hashes from the ones here.

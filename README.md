@@ -13,4 +13,4 @@ hegel.dev is deployed from hegeldev/hegel; changes made here are no longer publi
 
 ## History
 
-The history of this repository's `main` branch was merged into the monorepo, with its Git LFS files converted to ordinary files, so the commits there have different hashes from the ones here.
+The full history of this repository's `main` branch was merged into the monorepo unchanged, so every commit here exists there too, with the same hash. Its Git LFS files are stored in the monorepo's LFS storage, under the same `.gitattributes` rules (now `website/.gitattributes`).
